@@ -15,7 +15,7 @@ to route request to Spark driver and serve Spark UI web pages from YARN Resource
 In the new era with Kubernetes, there is no YARN anymore. We need a similar web proxy to make it easy to
 access Spark UI. [spark-on-k8s-operator](https://github.com/GoogleCloudPlatform/spark-on-k8s-operator) is
 a popular Kubernetes Operator to run Spark application on Kubernetes. It is very easy to write a web service
-together with spark-on-k8s-operator, which acts like a reverse proxy to server Spark UI web pages.
+companion to act as a reverse proxy to server Spark UI web pages.
 
 Here we will present how to build such a simple Spark UI Reverse Proxy using Go program language (Golang). 
 The fully functional code is in [spark-ui-reverse-proxy code repo](https://github.com/datapunchorg/spark-ui-reverse-proxy).
