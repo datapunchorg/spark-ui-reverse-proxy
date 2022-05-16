@@ -39,5 +39,4 @@ FROM alpine:3.14
 USER root
 COPY --from=builder /usr/bin/spark-ui-reverse-proxy /usr/bin/
 
-COPY entrypoint.sh /usr/bin/
 ENTRYPOINT ["/usr/bin/spark-ui-reverse-proxy"]
