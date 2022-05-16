@@ -50,6 +50,7 @@ func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
 		appName = path[0:index]
 		path = path[index + 1:]
 	}
+	// get url for the underlying Spark UI Kubernetes service, which is created by spark-on-k8s-operator
 	sparkUIServiceUrl := getSparkUIServiceUrl(config.SparkUIServiceUrl, appName, config.SparkApplicationNamespace)
 	proxyBasePath := ""
 	if config.ModifyRedirectUrl {
