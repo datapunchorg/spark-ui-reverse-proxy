@@ -151,10 +151,11 @@ without needing `kubectl port-forward`.
 
 ## One Click to Automatically Deploy Spark Operator and Spark UI Reverse Proxy
 
-If you feel it is too complicated to deploy all the components, you could use
-[punch](https://github.com/datapunchorg/punch) project, which provides a fully automated tool to deploy a read-to-use
+If you feel a little too complicated to deploy all the components, you could use
+[punch](https://github.com/datapunchorg/punch) project from [DataPunch](https://github.com/datapunchorg),
+which provides a fully automated tool to deploy a read-to-use
 Spark service on top of EKS. It creates an EKS cluster, and deploy Spark Operator there. It also deploys an
-API Gateway to accept Spark application submission and provide a Spark UI Reverse Proxy.
+REST API Gateway to accept Spark application submission and provide a Spark UI Reverse Proxy.
 
 The command to run `punch` is like following, see its [User Guide](https://github.com/datapunchorg/punch/blob/main/UserGuide.md)
 for more details:
@@ -163,7 +164,7 @@ for more details:
 punch install SparkOnEks --patch spec.spark.gateway.password=password1 --print-usage-example
 ```
 
-## Summary
+## Conclusion
 
 Hopefully this article helps you to simplify your effort to run Apache Spark on Kubernetes. It also demonstrates how
 easy to write a web reverse proxy server using Golang. The [punch](https://github.com/datapunchorg/punch) project could
