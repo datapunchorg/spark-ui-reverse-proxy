@@ -18,7 +18,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apigateway/handlers"
+	handlers "github.com/datapunchorg/spark-ui-reverse-proxy/pkg/handlers"
 	"github.com/gin-gonic/gin"
 )
 

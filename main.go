@@ -18,15 +18,17 @@ package main
 
 import (
 	"flag"
-	"github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apigateway/server"
+	server "github.com/datapunchorg/spark-ui-reverse-proxy/pkg/server"
 	"github.com/golang/glog"
-	apiv1 "k8s.io/api/core/v1"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"log"
 )
 
+const (
+	namespaceAll = ""
+)
+
 var (
-	namespace         = flag.String("namespace", apiv1.NamespaceAll, "The Kubernetes namespace where Spark applications are running.")
+	namespace         = flag.String("namespace", namespaceAll, "The Kubernetes namespace where Spark applications are running.")
 	port              = flag.Int("port", 8080, "Server port for this reverse proxy.")
 	sparkUIServiceUrl = flag.String("spark-ui-service-url", "http://{{$appName}}-ui-svc.{{$appNamespace}}.svc.cluster.local:4040", "Spark UI Service URL, this should point to the Spark driver service which provides Spark UI inside that driver.")
 	modifyRedirectUrl = flag.Bool("modify-redirect-url", true, "Whether to modify redirect url to make sure the redirect url uses correct path.")
@@ -35,7 +37,7 @@ var (
 func main() {
 	flag.Parse()
 
-	log.Printf("Starting server on port %s, application namespace: %s", *port, *namespace)
+	log.Printf("Starting server on port %d, application namespace: %s", *port, *namespace)
 
 	config := server.Config{
 		Port: *port,
