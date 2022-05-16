@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
 
   build:
@@ -12,5 +16,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-$(date +%s)
+    - name: Log in to the Container registry
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build and publish the Docker image
+      run: |
+        suffix=$(date +%s)
+        docker build . --file Dockerfile --tag ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-$suffix
+        docker push ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-$suffix
