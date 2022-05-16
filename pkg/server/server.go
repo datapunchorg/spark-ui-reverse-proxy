@@ -28,7 +28,6 @@ func Run(config Config) {
 	router := gin.Default()
 
 	apiConfig := handlers.ApiConfig{
-		SparkApplicationNamespace: config.SparkApplicationNamespace,
 		SparkUIServiceUrl:         config.SparkUIServiceUrl,
 		ModifyRedirectUrl:         config.ModifyRedirectUrl,
 	}

@@ -35,30 +35,29 @@ func getSparkUIServiceUrl(sparkUIServiceUrlFormat string, appName string, appNam
 }
 
 func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
+	// get requested url path, which should be something like /application-namespace/application-name
 	path := c.Param("path")
+
 	// remove / prefix if there is any
 	if strings.HasPrefix(path, "/") {
 		path = path[1:]
 	}
-	// get application name
-	appName := ""
-	index := strings.Index(path, "/")
-	if index <= 0 {
-		appName = path
-		path = ""
-	} else {
-		appName = path[0:index]
-		path = path[index + 1:]
+
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid request url, must contain /application-namespace/application-name"))
+		return
 	}
-	sparkUIServiceUrl := getSparkUIServiceUrl(config.SparkUIServiceUrl, appName, config.SparkApplicationNamespace)
+	appNamespace := parts[0]
+	appName := parts[1]
+	sparkUIServiceUrl := getSparkUIServiceUrl(config.SparkUIServiceUrl, appName, appNamespace)
 	proxyBasePath := ""
 	if config.ModifyRedirectUrl {
-		proxyBasePath = fmt.Sprintf("%s/%s", uiRootPath, appName)
+		proxyBasePath = fmt.Sprintf("%s/%s/%s", uiRootPath, appNamespace, appName)
 	}
 	proxy, err := newReverseProxy(sparkUIServiceUrl, path, proxyBasePath)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to create reverse proxy for application %s: %s", appName, err.Error())
-		writeErrorResponse(c, http.StatusInternalServerError, msg, nil)
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("failed to create reverse proxy for %s/%s: %s", appNamespace, appName, err.Error()))
 		return
 	}
 
