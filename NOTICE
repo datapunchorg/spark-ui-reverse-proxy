@@ -1,3 +1,4 @@
-This project is inspired by https://github.com/GoogleCloudPlatform/spark-on-k8s-operator.
+This project is inspired by https://github.com/GoogleCloudPlatform/spark-on-k8s-operator. Some files were copied
+and modified from there.
 
 Thanks contributors of spark-on-k8s-operator!

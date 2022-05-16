@@ -22,3 +22,4 @@ spec:
     memory: "512m"
   sparkConf:
     spark.ui.proxyBase: /sparkui/spark-example-01
+    spark.ui.proxyRedirectUri: /
