@@ -16,13 +16,9 @@ limitations under the License.
 
 package server
 
-const (
-	DefaultUrlPrefix = "/sparkapi"
-)
-
 type Config struct {
 	Port                      int
-	UrlPrefix                 string
 	SparkApplicationNamespace string
-	SparkUIServiceUrlFormat   string
+	SparkUIServiceUrl         string
+	ModifyRedirectUrl         bool
 }

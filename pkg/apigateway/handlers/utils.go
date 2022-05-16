@@ -19,7 +19,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/golang/glog"
+	"log"
 )
 
 func writeErrorResponse(context *gin.Context, httpCode int, message string, err error) {
@@ -33,6 +33,6 @@ func writeErrorResponse(context *gin.Context, httpCode int, message string, err 
 	} else {
 		str = fmt.Sprintf("%s: %s", message, err.Error())
 	}
-	glog.Warning(str)
+	log.Printf(str)
 	context.AbortWithError(httpCode, fmt.Errorf(str))
 }

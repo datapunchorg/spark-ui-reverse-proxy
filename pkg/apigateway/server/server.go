@@ -22,38 +22,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getV1ApiRootPath(urlPrefix string) string {
-	return fmt.Sprintf("%s/v1", urlPrefix)
-}
-
 func Run(config Config) {
 	port := config.Port
-
-	urlPrefix := config.UrlPrefix
-	if urlPrefix == "" {
-		urlPrefix = DefaultUrlPrefix
-	}
 
 	router := gin.Default()
 
 	apiConfig := handlers.ApiConfig{
 		SparkApplicationNamespace: config.SparkApplicationNamespace,
-		SparkUIServiceUrlFormat:   config.SparkUIServiceUrlFormat,
-		SparkUIBaseProxyPrefix:    fmt.Sprintf("%s/sparkui", getV1ApiRootPath(config.UrlPrefix)),
+		SparkUIServiceUrl:         config.SparkUIServiceUrl,
+		ModifyRedirectUrl:         config.ModifyRedirectUrl,
 	}
 
 	router.GET("/health", handlers.HealthCheck)
 
-	apiRootPath := getV1ApiRootPath(config.UrlPrefix)
-
-	group := router.Group(apiRootPath, func(context *gin.Context) {})
-
-	group.GET("/sparkui/*path",
+	router.GET("/sparkui/*path",
 		func(context *gin.Context) {
-			handlers.ServeSparkUI(context, &apiConfig, apiRootPath + "/sparkui")
+			handlers.ServeSparkUI(context, &apiConfig, "/sparkui")
 		})
-
-	group.GET("/health", handlers.HealthCheck)
 
 	router.Run(fmt.Sprintf(":%d", port))
 }

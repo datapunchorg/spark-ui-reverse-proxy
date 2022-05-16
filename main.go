@@ -1,5 +1,5 @@
 /*
-Copyright 2022 DataPunch Organization
+Copyright https://github.com/datapunchorg
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,27 +22,26 @@ import (
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"log"
 )
 
 var (
-	namespace                      = flag.String("namespace", apiv1.NamespaceAll, "The Kubernetes namespace to manage. Will manage custom resource objects of the managed CRD types for the whole cluster if unset.")
-	apiGatewayPort                 = flag.Int("api-gateway-port", 0, "API gateway REST server port.")
-	apiGatewayUrlPrefix            = flag.String("api-gateway-url-prefix", server.DefaultUrlPrefix, "API gateway REST server url prefix.")
-	apiGatewayUserName             = flag.String("api-gateway-user-name", "", "User name for API gateway REST server. If this is specified, people must provide the matching user name and password when sending request to the API gateway REST server.")
-	apiGatewayUserPassword         = flag.String("api-gateway-user-password", "", "User password for API gateway REST server. If this is specified together with user name, people must provide the matching user name and password when sending request to the API gateway REST server.")
-	apiGatewaySparkUIServiceURLFormat               = flag.String("api-gateway-spark-ui-service-url-format", "http://{{$appName}}-ui-svc.{{$appNamespace}}.svc.cluster.local:4040", "Spark UI Service URL format, used to provide accessing to Spark UI.")
-	apiGatewayConfig               = flag.String("api-gateway-config", "", "Config file for API gateway REST server to provide extra settings.")
+	namespace         = flag.String("namespace", apiv1.NamespaceAll, "The Kubernetes namespace where Spark applications are running.")
+	port              = flag.Int("port", 8080, "Server port for this reverse proxy.")
+	sparkUIServiceUrl = flag.String("spark-ui-service-url", "http://{{$appName}}-ui-svc.{{$appNamespace}}.svc.cluster.local:4040", "Spark UI Service URL, this should point to the Spark driver service which provides Spark UI inside that driver.")
+	modifyRedirectUrl = flag.Bool("modify-redirect-url", true, "Whether to modify redirect url to make sure the redirect url uses correct path.")
 )
 
 func main() {
 	flag.Parse()
 
-	glog.Infof("Starting server on port %s, url prefix: %s, application namespace: %s", *apiGatewayPort, *apiGatewayUrlPrefix, *namespace)
+	log.Printf("Starting server on port %s, application namespace: %s", *port, *namespace)
+
 	config := server.Config{
-		Port: *apiGatewayPort,
-		UrlPrefix: *apiGatewayUrlPrefix,
+		Port: *port,
 		SparkApplicationNamespace: *namespace,
-		SparkUIServiceUrlFormat: *apiGatewaySparkUIServiceURLFormat,
+		SparkUIServiceUrl: *sparkUIServiceUrl,
+		ModifyRedirectUrl: *modifyRedirectUrl,
 	}
 	server.Run(config)
 

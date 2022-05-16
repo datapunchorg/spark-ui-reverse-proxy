@@ -1,0 +1,24 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: spark-example-01
+  namespace: spark-01
+spec:
+  type: Java
+  image: "ghcr.io/datapunchorg/spark:spark-3.2.1-1643336295"
+  mainClass: org.datapunch.sparkapp.Sleep
+  mainApplicationFile: "s3a://datapunch-public-01/sparkapp/sparkapp-1.0.5.jar"
+  arguments: ["--sleep", "1000000"]
+  sparkVersion: "3.2"
+  restartPolicy:
+    type: Never
+  driver:
+    cores: 1
+    memory: "512m"
+    serviceAccount: spark
+  executor:
+    cores: 1
+    instances: 1
+    memory: "512m"
+  sparkConf:
+    spark.ui.proxyBase: /sparkui/spark-example-01

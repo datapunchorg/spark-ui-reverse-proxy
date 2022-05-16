@@ -19,7 +19,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/golang/glog"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -30,31 +30,34 @@ import (
 var sparkUIAppNameURLRegex = regexp.MustCompile("{{\\s*[$]appName\\s*}}")
 var sparkUIAppNamespaceURLRegex = regexp.MustCompile("{{\\s*[$]appNamespace\\s*}}")
 
-// sparkUIBackendUrlFormat example: http://{{$appName}}-ui-svc.{{$appNamespace}}.svc.cluster.local:4040
-
 func getSparkUIServiceUrl(sparkUIServiceUrlFormat string, appName string, appNamespace string) string {
 	return sparkUIAppNamespaceURLRegex.ReplaceAllString(sparkUIAppNameURLRegex.ReplaceAllString(sparkUIServiceUrlFormat, appName), appNamespace)
 }
 
 func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
 	path := c.Param("path")
+	// remove / prefix if there is any
 	if strings.HasPrefix(path, "/") {
 		path = path[1:]
 	}
-	id := ""
+	// get application name
+	appName := ""
 	index := strings.Index(path, "/")
 	if index <= 0 {
-		id = path
+		appName = path
 		path = ""
 	} else {
-		id = path[0:index]
+		appName = path[0:index]
 		path = path[index + 1:]
 	}
-	backendUrl := getSparkUIServiceUrl(config.SparkUIServiceUrlFormat, id, config.SparkApplicationNamespace)
-	proxyBasePath := fmt.Sprintf("%s/%s", uiRootPath, id)
-	proxy, err := newReverseProxy(backendUrl, path, proxyBasePath)
+	sparkUIServiceUrl := getSparkUIServiceUrl(config.SparkUIServiceUrl, appName, config.SparkApplicationNamespace)
+	proxyBasePath := ""
+	if config.ModifyRedirectUrl {
+		proxyBasePath = fmt.Sprintf("%s/%s", uiRootPath, appName)
+	}
+	proxy, err := newReverseProxy(sparkUIServiceUrl, path, proxyBasePath)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to create reverse proxy for %s: %s", id, err.Error())
+		msg := fmt.Sprintf("Failed to create reverse proxy for application %s: %s", appName, err.Error())
 		writeErrorResponse(c, http.StatusInternalServerError, msg, nil)
 		return
 	}
@@ -62,28 +65,27 @@ func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
-func newReverseProxy(backendUrl string, targetPath string, proxyBasePath string) (*httputil.ReverseProxy, error) {
-	glog.Infof("Creating revers proxy for Spark UI backend url %s", backendUrl)
+func newReverseProxy(sparkUIServiceUrl string, targetPath string, proxyBasePath string) (*httputil.ReverseProxy, error) {
+	log.Printf("Creating revers proxy for Spark UI service url %s", sparkUIServiceUrl)
 	if targetPath != "" {
 		if !strings.HasPrefix(targetPath, "/") {
 			targetPath = "/" + targetPath
 		}
-		backendUrl = backendUrl + targetPath
+		sparkUIServiceUrl = sparkUIServiceUrl + targetPath
 	}
-	url, err := url.Parse(backendUrl)
+	url, err := url.Parse(sparkUIServiceUrl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse target Spark UI url %s: %s", backendUrl, err.Error())
+		return nil, fmt.Errorf("failed to parse target Spark UI url %s: %s", sparkUIServiceUrl, err.Error())
 	}
 	director := func(req *http.Request) {
-		glog.Infof("Reverse proxy: serving backend url %s for originally requested url %s", url, req.URL)
+		log.Printf("Reverse proxy: serving backend url %s for originally requested url %s", url, req.URL)
 		req.URL = url
-		if _, ok := req.Header["User-Agent"]; !ok {
-			// explicitly disable User-Agent so it's not set to default value
-			req.Header.Set("User-Agent", "")
-		}
 	}
 	modifyResponse := func(resp *http.Response) error {
-		if resp.StatusCode == http.StatusFound {
+		if proxyBasePath != "" && resp.StatusCode == http.StatusFound {
+			// Append the proxy base path before the redirect path.
+			// Also modify redirect url to only contain path and not contain host name,
+			// so redirect will retain the original requested host name.
 			headerName := "Location"
 			locationHeaderValues := resp.Header[headerName]
 			if len(locationHeaderValues) > 0 {
@@ -91,7 +93,7 @@ func newReverseProxy(backendUrl string, targetPath string, proxyBasePath string)
 				for _, oldHeaderValue := range locationHeaderValues {
 					parsedUrl, err := url.Parse(oldHeaderValue)
 					if err != nil {
-						glog.Infof("Reverse proxy: invalid response header value %s: %s (backend url %s): %s", headerName, oldHeaderValue, url, err.Error())
+						log.Printf("Reverse proxy: invalid response header value %s: %s (backend url %s): %s", headerName, oldHeaderValue, url, err.Error())
 						newValues = append(newValues, oldHeaderValue)
 					} else {
 						parsedUrl.Scheme = ""
@@ -102,29 +104,13 @@ func newReverseProxy(backendUrl string, targetPath string, proxyBasePath string)
 						}
 						parsedUrl.Path = proxyBasePath + newPath
 						newHeaderValue := parsedUrl.String()
-						glog.Infof("Reverse proxy: modifying response header %s from %s to %s (backend url %s)", headerName, oldHeaderValue, newHeaderValue, url)
+						log.Printf("Reverse proxy: modifying response header %s from %s to %s (backend url %s)", headerName, oldHeaderValue, newHeaderValue, url)
 						newValues = append(newValues, newHeaderValue)
 					}
 				}
 				resp.Header[headerName] = newValues
 			}
 		}
-		/* else {
-			b, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return  err
-			}
-			err = resp.Body.Close()
-			if err != nil {
-				return err
-			}
-			b = bytes.Replace(b, []byte("setUIRoot('')"), []byte("setUIRoot('')"), -1)
-			body := ioutil.NopCloser(bytes.NewReader(b))
-			resp.Body = body
-			resp.ContentLength = int64(len(b))
-			resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
-			return nil
-		} */
 		return nil
 	}
 	return &httputil.ReverseProxy{

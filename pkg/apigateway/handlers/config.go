@@ -17,7 +17,7 @@ limitations under the License.
 package handlers
 
 type ApiConfig struct {
-	SparkApplicationNamespace string `json:"sparkApplicationNamespace"`
-	SparkUIServiceUrlFormat   string `json:"sparkUIServiceUrlFormat"`
-	SparkUIBaseProxyPrefix    string `json:"sparkUIBaseProxyPrefix"`
+	SparkApplicationNamespace string
+	SparkUIServiceUrl         string
+	ModifyRedirectUrl         bool
 }
