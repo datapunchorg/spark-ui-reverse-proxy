@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-ui-reverse-proxy
+  labels:
+    app: spark-ui-reverse-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-ui-reverse-proxy
+  template:
+    metadata:
+      labels:
+        app: spark-ui-reverse-proxy
+    spec:
+      containers:
+      - name: spark-ui-reverse-proxy
+        image: ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-1652718290
+        imagePullPolicy: IfNotPresent
+        command:
+          - '/usr/bin/spark-ui-reverse-proxy'
+        args:
+          - -namespace=spark-01
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-ui-reverse-proxy
+  labels:
+    app: spark-ui-reverse-proxy
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: spark-ui-reverse-proxy
