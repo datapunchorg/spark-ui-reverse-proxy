@@ -57,8 +57,7 @@ func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
 	}
 	proxy, err := newReverseProxy(sparkUIServiceUrl, path, proxyBasePath)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to create reverse proxy for application %s: %s", appName, err.Error())
-		writeErrorResponse(c, http.StatusInternalServerError, msg, nil)
+		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to create reverse proxy for application %s: %s", appName, err.Error()))
 		return
 	}
 
