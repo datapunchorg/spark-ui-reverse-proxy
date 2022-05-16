@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: spark-ui-reverse-proxy
-        image: ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-1652718290
+        image: ghcr.io/datapunchorg/spark-ui-reverse-proxy:main-1652721119
         imagePullPolicy: IfNotPresent
         command:
           - '/usr/bin/spark-ui-reverse-proxy'
