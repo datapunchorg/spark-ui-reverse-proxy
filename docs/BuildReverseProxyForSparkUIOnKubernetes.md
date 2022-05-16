@@ -1,3 +1,8 @@
+## Quick Summary
+This article describes how to build an HTTP Reverse Proxy to help Spark on Kubernetes users to access
+Spark UI from outside Kubernetes cluster. This Reverse Proxy needs to be deployed together with
+[spark-on-k8s-operator](https://github.com/GoogleCloudPlatform/spark-on-k8s-operator).
+
 ## Introduction
 
 If you run Apache Spark on Kubernetes, you may spend quite some time figuring out how to access Spark UI,
@@ -36,7 +41,7 @@ start a server listening on `/sparkui/*` web endpoint:
 	router.Run(fmt.Sprintf(":%d", port))
 ```
 
-When people send browse url like "http://your-spark-ui-reverse-proxy-server:8080/sparkui/application-name", the proxy server
+When people browse url like "http://your-spark-ui-reverse-proxy-server:8080/sparkui/application-name", the proxy server
 will parse the url, get the application name, connect to the Spark driver and fetch the Spark UI web pages.
 
 ## Code Example to Serve Spark UI
@@ -102,3 +107,66 @@ func newReverseProxy(sparkUIServiceUrl string, targetPath string) (*httputil.Rev
 	}, nil
 }
 ```
+
+## How to Use Spark UI Reverse Proxy
+
+1. Following instructions in [spark-on-k8s-operator](https://github.com/GoogleCloudPlatform/spark-on-k8s-operator)
+to deploy Spark Operator in your Kubernetes cluster. Remember to choose a namespace to for your Spark application to
+run there, for example, use `spark-01` as the namespace name.
+
+2. Deploy Spark UI Reverse Proxy
+
+```
+kubectl apply -f https://raw.githubusercontent.com/datapunchorg/spark-ui-reverse-proxy/main/manifest/deployment.yaml
+```
+
+3. Run a Spark application, for example:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/datapunchorg/spark-ui-reverse-proxy/main/manifest/spark-example-01.yaml
+```
+Please remember to add Spark configuration like following:
+```
+  sparkConf:
+    spark.ui.proxyBase: /sparkui/spark-example-01
+    spark.ui.proxyRedirectUri: /
+```
+
+4. Expose Spark UI Reverse Proxy:
+
+```
+kubectl port-forward service/spark-ui-reverse-proxy 8080:8080
+```
+
+5. Now you could browse your application's Spark UI:
+
+```
+http://localhost:8080/sparkui/spark-example-01
+```
+
+6. When running in production, you could set up
+[Ingress Controller](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/) and add an
+[Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) to expose Spark UI Reverse Proxy
+without needing `kubectl port-forward`.
+
+## One Click to Automatically Deploy Spark Operator and Spark UI Reverse Proxy
+
+If you feel it is too complicated to deploy all the components, you could use
+[punch](https://github.com/datapunchorg/punch) project, which provides a fully automated tool to deploy a read-to-use
+Spark service on top of EKS. It creates an EKS cluster, and deploy Spark Operator there. It also deploys an
+API Gateway to accept Spark application submission and provide a Spark UI Reverse Proxy.
+
+The command to run `punch` is like following, see its [User Guide](https://github.com/datapunchorg/punch/blob/main/UserGuide.md)
+for more details:
+
+```
+punch install SparkOnEks --patch spec.spark.gateway.password=password1 --print-usage-example
+```
+
+## Summary
+
+Hopefully this article helps you to simplify your effort to run Apache Spark on Kubernetes. It also demonstrates how
+easy to write a web reverse proxy server using Golang. The [punch](https://github.com/datapunchorg/punch) project could
+automatically deploy Spark and the proxy server for you as well.
+
+Wish you a great journey with Spark and Kubernetes!
