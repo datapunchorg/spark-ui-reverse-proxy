@@ -40,4 +40,4 @@ USER root
 COPY --from=builder /usr/bin/spark-ui-reverse-proxy /usr/bin/
 
 COPY entrypoint.sh /usr/bin/
-ENTRYPOINT ["/usr/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/spark-ui-reverse-proxy"]
