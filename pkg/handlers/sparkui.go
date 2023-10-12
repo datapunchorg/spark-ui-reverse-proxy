@@ -121,10 +121,11 @@ func modifyResponseRedirect(resp *http.Response, proxyBasePath string, url *url.
 					if !strings.HasPrefix(newPath, "/") {
 						newPath = "/" + newPath
 					}
-					if !strings.Contains(strings.ToLower(newPath), strings.ToLower(proxyBasePath)) {
+					idx := strings.Index(strings.ToLower(newPath), strings.ToLower(proxyBasePath))
+					if idx < 0 {
 						parsedUrl.Path = proxyBasePath + newPath
 					} else {
-						parsedUrl.Path = strings.ReplaceAll(proxyBasePath + strings.ReplaceAll(newPath, proxyBasePath, ""), "//", "/")
+						parsedUrl.Path = newPath[:idx] + proxyBasePath + newPath[idx+len(proxyBasePath):]
 					}
 					newHeaderValue := parsedUrl.String()
 					log.Printf("Reverse proxy: modifying response header %s from %s to %s (backend url %s)", headerName, oldHeaderValue, newHeaderValue, url)

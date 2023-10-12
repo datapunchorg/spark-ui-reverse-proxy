@@ -56,15 +56,19 @@ func TestModifyResponse(t *testing.T) {
 	u, err := url.Parse("http://a3ac46c8487ecb95-ui-svc.cluster.local:4040/StreamingQuery/statistics/")
 	assert.NoError(t, err, "unexpected error")
 
-	err = modifyResponseRedirect(resp, "/sparkui/a3ac46c8487ecb95", u)
+	err = modifyResponseRedirect(resp, "/sparkui/a3ac46c8487ecb95", u, true)
 	assert.NoError(t, err, "unexpected error")
 	t.Logf("\n\"/sparkui/a3ac46c8487ecb95\" -> url=%s", resp.Header["Location"][0])
 
-	err = modifyResponseRedirect(resp, "", u)
+	err = modifyResponseRedirect(resp, "", u, false)
 	assert.NoError(t, err, "unexpected error")
 	t.Logf("\n\"\" -> url=%s", resp.Header["Location"][0])
 
-	err = modifyResponseRedirect(resp, "/", u)
+	err = modifyResponseRedirect(resp, "/", u, true)
 	assert.NoError(t, err, "unexpected error")
 	t.Logf("\n\"/\" -> url=%s", resp.Header["Location"][0])
+
+	err = modifyResponseRedirect(resp, "sparkui/StreamingQuery", u, true)
+	assert.NoError(t, err, "unexpected error")
+	t.Logf("\n\"/sparkui/StreamingQuery\" -> url=%s", resp.Header["Location"][0])
 }
