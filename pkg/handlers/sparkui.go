@@ -18,13 +18,14 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 var sparkUIAppNameURLRegex = regexp.MustCompile("{{\\s*[$]appName\\s*}}")
@@ -48,7 +49,7 @@ func ServeSparkUI(c *gin.Context, config *ApiConfig, uiRootPath string) {
 		path = ""
 	} else {
 		appName = path[0:index]
-		path = path[index + 1:]
+		path = path[index+1:]
 	}
 	// get url for the underlying Spark UI Kubernetes service, which is created by spark-on-k8s-operator
 	sparkUIServiceUrl := getSparkUIServiceUrl(config.SparkUIServiceUrl, appName, config.SparkApplicationNamespace)
@@ -78,46 +79,56 @@ func newReverseProxy(sparkUIServiceUrl string, targetPath string, proxyBasePath 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse target Spark UI url %s: %s", targetUrl, err.Error())
 	}
+
 	director := func(req *http.Request) {
-		url.RawQuery = req.URL.RawQuery
-		url.RawFragment = req.URL.RawFragment
-		log.Printf("Reverse proxy: serving backend url %s for originally requested url %s", url, req.URL)
-		req.URL = url
+		modifyRequest(req, url)
 	}
+
 	modifyResponse := func(resp *http.Response) error {
-		if proxyBasePath != "" && resp.StatusCode == http.StatusFound {
-			// Append the proxy base path before the redirect path.
-			// Also modify redirect url to only contain path and not contain host name,
-			// so redirect will retain the original requested host name.
-			headerName := "Location"
-			locationHeaderValues := resp.Header[headerName]
-			if len(locationHeaderValues) > 0 {
-				newValues := make([]string, 0, len(locationHeaderValues))
-				for _, oldHeaderValue := range locationHeaderValues {
-					parsedUrl, err := url.Parse(oldHeaderValue)
-					if err != nil {
-						log.Printf("Reverse proxy: invalid response header value %s: %s (backend url %s): %s", headerName, oldHeaderValue, url, err.Error())
-						newValues = append(newValues, oldHeaderValue)
-					} else {
-						parsedUrl.Scheme = ""
-						parsedUrl.Host = ""
-						newPath := parsedUrl.Path
-						if !strings.HasPrefix(newPath, "/") {
-							newPath = "/" + newPath
-						}
-						parsedUrl.Path = proxyBasePath + newPath
-						newHeaderValue := parsedUrl.String()
-						log.Printf("Reverse proxy: modifying response header %s from %s to %s (backend url %s)", headerName, oldHeaderValue, newHeaderValue, url)
-						newValues = append(newValues, newHeaderValue)
-					}
-				}
-				resp.Header[headerName] = newValues
-			}
-		}
-		return nil
+		return modifyResponseRedirect(resp, proxyBasePath, url)
 	}
 	return &httputil.ReverseProxy{
-		Director: director,
+		Director:       director,
 		ModifyResponse: modifyResponse,
 	}, nil
+}
+
+func modifyRequest(req *http.Request, url *url.URL) {
+	url.RawQuery = req.URL.RawQuery
+	url.RawFragment = req.URL.RawFragment
+	log.Printf("Reverse proxy: serving backend url %s for originally requested url %s", url, req.URL)
+	req.URL = url
+}
+
+func modifyResponseRedirect(resp *http.Response, proxyBasePath string, url *url.URL) error {
+	if proxyBasePath != "" && resp.StatusCode == http.StatusFound {
+		// Append the proxy base path before the redirect path.
+		// Also modify redirect url to only contain path and not contain host name,
+		// so redirect will retain the original requested host name.
+		headerName := "Location"
+		locationHeaderValues := resp.Header[headerName]
+		if len(locationHeaderValues) > 0 {
+			newValues := make([]string, 0, len(locationHeaderValues))
+			for _, oldHeaderValue := range locationHeaderValues {
+				parsedUrl, err := url.Parse(oldHeaderValue)
+				if err != nil {
+					log.Printf("Reverse proxy: invalid response header value %s: %s (backend url %s): %s", headerName, oldHeaderValue, url, err.Error())
+					newValues = append(newValues, oldHeaderValue)
+				} else {
+					parsedUrl.Scheme = ""
+					parsedUrl.Host = ""
+					newPath := parsedUrl.Path
+					if !strings.HasPrefix(newPath, "/") {
+						newPath = "/" + newPath
+					}
+					parsedUrl.Path = proxyBasePath + newPath
+					newHeaderValue := parsedUrl.String()
+					log.Printf("Reverse proxy: modifying response header %s from %s to %s (backend url %s)", headerName, oldHeaderValue, newHeaderValue, url)
+					newValues = append(newValues, newHeaderValue)
+				}
+			}
+			resp.Header[headerName] = newValues
+		}
+	}
+	return nil
 }

@@ -17,8 +17,11 @@ limitations under the License.
 package handlers
 
 import (
-	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_getSparkUIServiceUrl(t *testing.T) {
@@ -31,4 +34,37 @@ func Test_getSparkUIServiceUrl(t *testing.T) {
 		"http://app1-ui-svc.ns1.svc.cluster.local:4040",
 		getSparkUIServiceUrl(
 			"http://{{$appName}}-ui-svc.{{$appNamespace}}.svc.cluster.local:4040", "app1", "ns1"))
+}
+
+func TestModifyRequest(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "/sparkui/a3ac46c8487ecb95/static/webui.js?id=87c23377-4a64-47d3-82d7-5da9b39801a5", nil)
+	assert.NoError(t, err, "unexpected error")
+	u, err := url.Parse("http://a3ac46c8487ecb95-ui-svc.cluster.local:4040/static/webui.js")
+	assert.NoError(t, err, "unexpected error")
+	modifyRequest(r, u)
+	t.Logf("url=%s", r.URL.String())
+}
+
+func TestModifyResponse(t *testing.T) {
+	headers := http.Header{}
+	headers.Add("Location", "/sparkui/StreamingQuery/statistics/?id=7ab24792-82e1-433b-a158-dc5792878f57")
+	resp := &http.Response{
+		Status: http.StatusText(http.StatusFound),
+		StatusCode: http.StatusFound,
+		Header: headers,
+	}
+	u, err := url.Parse("http://a3ac46c8487ecb95-ui-svc.cluster.local:4040/StreamingQuery/statistics/")
+	assert.NoError(t, err, "unexpected error")
+
+	err = modifyResponseRedirect(resp, "/sparkui/a3ac46c8487ecb95", u)
+	assert.NoError(t, err, "unexpected error")
+	t.Logf("\n\"/sparkui/a3ac46c8487ecb95\" -> url=%s", resp.Header["Location"][0])
+
+	err = modifyResponseRedirect(resp, "", u)
+	assert.NoError(t, err, "unexpected error")
+	t.Logf("\n\"\" -> url=%s", resp.Header["Location"][0])
+
+	err = modifyResponseRedirect(resp, "/", u)
+	assert.NoError(t, err, "unexpected error")
+	t.Logf("\n\"/\" -> url=%s", resp.Header["Location"][0])
 }
