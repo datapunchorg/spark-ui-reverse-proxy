@@ -17,7 +17,7 @@
 
 ARG SPARK_IMAGE=ghcr.io/datapunchorg/spark:spark-3.2-1642867779
 
-FROM golang:1.17.3-alpine as builder
+FROM golang:1.21.3-alpine3.17 as builder
 
 WORKDIR /workspace
 
@@ -35,7 +35,7 @@ COPY pkg/ pkg/
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /usr/bin/spark-ui-reverse-proxy main.go
 
-FROM alpine:3.14
+FROM alpine:3.17
 USER root
 COPY --from=builder /usr/bin/spark-ui-reverse-proxy /usr/bin/
 
